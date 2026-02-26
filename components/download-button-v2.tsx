@@ -8,7 +8,7 @@ import { DownloadIcon, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { useSettings } from '@/lib/settings-provider';
 import { useCountry } from '@/lib/country-provider';
 import { useAuth } from '@/components/auth-provider';
-import { useMusicSource } from '@/lib/music-source-provider';
+
 import {
     createDownloadV2,
     waitForDownloadV2,
@@ -67,7 +67,7 @@ export function DownloadButtonV2({
     const { settings } = useSettings();
     const { country } = useCountry();
     const { user, isGuest, refreshGuestRateLimit } = useAuth();
-    const { source } = useMusicSource();
+
 
     const handleDownload = async () => {
         if (status !== 'idle') return;
@@ -88,7 +88,7 @@ export function DownloadButtonV2({
                     embedLyrics: settings.lyricsEnabled !== false,
                     lyricsMode: settings.lyricsSidecar ? 'sidecar' : 'embed',
                     country,
-                    source
+
                 };
             } else if (album) {
                 downloadRequest = {
@@ -98,7 +98,7 @@ export function DownloadButtonV2({
                     embedLyrics: settings.lyricsEnabled !== false,
                     lyricsMode: settings.lyricsSidecar ? 'sidecar' : 'embed',
                     country,
-                    source
+
                 };
             } else {
                 // Use explicit props
@@ -116,7 +116,7 @@ export function DownloadButtonV2({
                     embedLyrics: settings.lyricsEnabled !== false,
                     lyricsMode: settings.lyricsSidecar ? 'sidecar' : 'embed',
                     country,
-                    source
+
                 };
             }
 

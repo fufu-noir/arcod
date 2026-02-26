@@ -7,7 +7,7 @@ import { unmarshall } from '@aws-sdk/util-dynamodb';
 import { getDownloadJob, updateDownloadJob, getUserStorageUsed } from './dynamodb-v2.js';
 import { uploadToS3, getContentType } from './s3.js';
 import { getAlbumInfoFromQobuz, getTrackFileUrl } from './qobuz-api.js';
-import { getAlbumInfoFromTidal, getTrackFileUrlFromTidal } from './tidal-api.js';
+
 import type { DownloadJobV2 } from './types-v2.js';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -25,6 +25,7 @@ ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const MAX_RETRIES = 3;
 const CONCURRENCY = 3;
 const LYRICS_API_URL = process.env.LYRICS_API_URL || '';
+const MAX_TRACKS_PER_JOB = 80; // Safety cap — 80 FLAC tracks ≈ 8 GB of /tmp
 
 // Library storage limit per user: 30 GB in bytes
 const LIBRARY_SIZE_LIMIT = 30 * 1024 * 1024 * 1024; // 30 GB
@@ -72,14 +73,32 @@ interface AlbumInfo {
 }
 
 export async function handler(event: DynamoDBStreamEvent): Promise<void> {
+    // Clean up stale /tmp directories left by previous invocations on this warm container.
+    // This prevents ENOSPC when DynamoDB Stream retries hit the same container.
+    try {
+        const tmpDir = os.tmpdir();
+        const entries = fs.readdirSync(tmpDir);
+        for (const entry of entries) {
+            if (entry.startsWith('dl-') || entry.startsWith('meta_')) {
+                try {
+                    fs.rmSync(path.join(tmpDir, entry), { recursive: true, force: true });
+                } catch { /* ignore */ }
+            }
+        }
+    } catch { /* ignore */ }
+
     for (const record of event.Records) {
         if (record.eventName !== 'INSERT') continue;
         if (!record.dynamodb?.NewImage) continue;
 
         const job = unmarshall(record.dynamodb.NewImage as Record<string, any>) as DownloadJobV2;
 
-        if (job.status !== 'pending') {
-            console.log(`Job ${job.id} is not pending, skipping`);
+        // Idempotency check: re-read the job from DynamoDB.
+        // DynamoDB Streams can retry the same record after a timeout or error.
+        // If the job is no longer 'pending', another invocation already picked it up.
+        const currentJob = await getDownloadJob(job.id);
+        if (!currentJob || currentJob.status !== 'pending') {
+            console.log(`[${job.id}] Job status is '${currentJob?.status}' (not pending) — skipping DynamoDB Stream retry`);
             continue;
         }
 
@@ -102,11 +121,8 @@ async function processDownload(job: DownloadJobV2): Promise<void> {
             description: 'Fetching album info...'
         });
 
-        // Fetch album info - use Tidal or Qobuz based on source
-        const isTidal = job.source === 'tidal';
-        const albumInfo: AlbumInfo = isTidal
-            ? await getAlbumInfoFromTidal(job.albumId, job.country)
-            : await getAlbumInfoFromQobuz(job.albumId, job.country);
+        // Fetch album info from Qobuz
+        const albumInfo: AlbumInfo = await getAlbumInfoFromQobuz(job.albumId, job.country);
         const allTracks: TrackInfo[] = albumInfo?.tracks?.items || [];
 
         if (allTracks.length === 0) {
@@ -120,6 +136,12 @@ async function processDownload(job: DownloadJobV2): Promise<void> {
             if (tracks.length === 0) {
                 throw new Error('Track not found or unavailable');
             }
+        }
+
+        // Safety cap: very large albums (box-sets, complete works) can exceed /tmp
+        if (tracks.length > MAX_TRACKS_PER_JOB) {
+            console.warn(`[${jobId}] Album has ${tracks.length} tracks, capping at ${MAX_TRACKS_PER_JOB}`);
+            tracks = tracks.slice(0, MAX_TRACKS_PER_JOB);
         }
 
         await updateDownloadJob(jobId, {
@@ -286,10 +308,7 @@ async function downloadAndProcessTrack(
 ): Promise<string[]> {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-            const isTidal = job.source === 'tidal';
-            const { url } = isTidal
-                ? await getTrackFileUrlFromTidal(String(track.id), job.quality, job.country)
-                : await getTrackFileUrl(String(track.id), job.quality, job.country);
+            const { url } = await getTrackFileUrl(String(track.id), job.quality, job.country);
 
             // Source extension from Qobuz (mp3 for quality 5, flac otherwise)
             const sourceExt = job.quality === 5 ? 'mp3' : 'flac';

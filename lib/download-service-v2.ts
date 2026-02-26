@@ -20,7 +20,7 @@ export interface DownloadRequestV2 {
     zipName?: string;
     trackName?: string;
     country?: string;
-    source?: 'qobuz' | 'tidal';
+    source?: 'qobuz';
 }
 
 export interface DownloadStatusV2 {
@@ -79,6 +79,8 @@ export async function waitForDownloadV2(
 ): Promise<DownloadStatusV2> {
     const pollInterval = 2000;
     const maxAttempts = 300;
+    const maxConsecutiveErrors = 10; // Fail after 10 consecutive HTTP errors (e.g. 500s)
+    let consecutiveErrors = 0;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         if (signal?.aborted) {
@@ -87,6 +89,7 @@ export async function waitForDownloadV2(
 
         try {
             const status = await getDownloadStatusV2(jobId);
+            consecutiveErrors = 0; // Reset on success
 
             if (onProgress) {
                 onProgress(status);
@@ -104,8 +107,20 @@ export async function waitForDownloadV2(
 
         } catch (err: any) {
             if (err.message === 'Cancelled') throw err;
-            console.error('Poll error:', err);
-            await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+            // If the error comes from a failed/cancelled status, propagate it
+            if (err.message?.startsWith('Download failed') || err.message?.startsWith('Download cancelled')) {
+                throw err;
+            }
+
+            consecutiveErrors++;
+            console.error(`Poll error (${consecutiveErrors}/${maxConsecutiveErrors}):`, err.message || err);
+
+            if (consecutiveErrors >= maxConsecutiveErrors) {
+                throw new Error('Server error — too many consecutive failures. Please try again.');
+            }
+
+            await new Promise(resolve => setTimeout(resolve, pollInterval * 2));
         }
     }
 

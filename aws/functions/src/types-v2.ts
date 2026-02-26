@@ -34,7 +34,7 @@ export interface DownloadJobV2 {
     lyricsMode: string;
     zipName?: string;
     trackName?: string;
-    source?: 'qobuz' | 'tidal';
+    source?: 'qobuz';
 
     // Output
     fileName?: string;
@@ -65,7 +65,7 @@ export interface CreateDownloadRequestV2 {
     zipName?: string;
     trackName?: string;
     country?: string;
-    source?: 'qobuz' | 'tidal';
+    source?: 'qobuz';
 }
 
 export interface DownloadStatusV2 {

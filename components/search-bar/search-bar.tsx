@@ -10,8 +10,7 @@ import { QobuzSearchResults } from '@/lib/qobuz-dl';
 import AutocompleteCard from './autocomplete-card';
 import { useCountry } from '@/lib/country-provider';
 import CountryPicker from '../country-picker';
-import SourceSelector from '../source-selector';
-import { useMusicSource } from '@/lib/music-source-provider';
+
 
 const SearchBar = ({
     onSearch,
@@ -32,7 +31,7 @@ const SearchBar = ({
 
     const inputRef = useRef<HTMLInputElement>(null);
     const { country } = useCountry();
-    const { source } = useMusicSource();
+
 
     useEffect(() => {
         setSearchInput(query);
@@ -58,10 +57,7 @@ const SearchBar = ({
         if (searching) controller.abort();
     }, [searching]);
 
-    // Get the correct API endpoint based on source
-    const getSearchEndpoint = () => {
-        return source === 'tidal' ? '/api/tidal-search' : '/api/get-music';
-    };
+
 
     const fetchResults = async () => {
         controller.abort();
@@ -77,7 +73,7 @@ const SearchBar = ({
         try {
             setTimeout(async () => {
                 try {
-                    const response = await axios.get(`${getSearchEndpoint()}?q=${searchInput}&offset=0`, {
+                    const response = await axios.get(`/api/get-music?q=${searchInput}&offset=0`, {
                         headers: {
                             'Token-Country': country
                         },
@@ -93,7 +89,7 @@ const SearchBar = ({
 
     useEffect(() => {
         fetchResults();
-    }, [searchInput, source]);
+    }, [searchInput]);
 
     return (
         <div className='flex items-center gap-3 relative w-full max-w-[800px]'>
@@ -101,8 +97,6 @@ const SearchBar = ({
                 onClick={() => inputRef.current?.focus()}
                 className='bg-card/80 backdrop-blur-xl border border-border/50 relative w-full tracking-wide font-medium rounded-xl flex gap-2 items-center py-3 px-4 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-primary/30'
             >
-                {/* Source Selector (Qobuz / Tidal) */}
-                <SourceSelector className='mr-1' />
 
                 <Label htmlFor='search' className='cursor-pointer'>
                     <SearchIcon className='!size-5 text-muted-foreground' />
@@ -111,7 +105,7 @@ const SearchBar = ({
                     id='search'
                     className='focus-visible:outline-none focus-visible:ring-transparent select-none shadow-none outline-none border-none text-base placeholder:text-muted-foreground/60'
                     ref={inputRef}
-                    placeholder={source === 'tidal' ? 'Search Tidal for albums, tracks, or artists...' : 'Search for albums, tracks, or artists...'}
+                    placeholder='Search for albums, tracks, or artists...'
                     value={searchInput}
                     autoComplete='off'
                     onFocus={(event: React.FocusEvent<HTMLInputElement>) => {

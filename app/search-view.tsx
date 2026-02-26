@@ -14,7 +14,7 @@ import { useTheme } from 'next-themes';
 import CountryPicker from '@/components/country-picker';
 import { useCountry } from '@/lib/country-provider';
 import ArcodLogo from '@/components/arcod-logo';
-import { useMusicSource } from '@/lib/music-source-provider';
+
 import { Button } from '@/components/ui/button';
 import { useInView } from 'react-intersection-observer';
 
@@ -49,12 +49,11 @@ const SearchView = () => {
     const [searchError, setSearchError] = useState<string>('');
     const { settings } = useSettings();
     const { country } = useCountry();
-    const { source } = useMusicSource();
 
-    // Get the correct API endpoint based on source
+
     const getSearchEndpoint = useCallback(() => {
-        return source === 'tidal' ? '/api/tidal-search' : '/api/get-music';
-    }, [source]);
+        return '/api/get-music';
+    }, []);
 
     // Infinite scroll trigger
     const [scrollTriggerRef, isInView] = useInView({
@@ -185,7 +184,7 @@ const SearchView = () => {
 
     useEffect(() => {
         if (country && query) onSearch(query);
-    }, [country, source]);
+    }, [country]);
 
     const filteredResults = React.useMemo(() => {
         if (!results) return null;
