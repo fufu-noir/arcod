@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.aws-sam/
+
+# Build output
+# Build output
+# dist/
+# *.js
+# *.js.map
+*.d.ts
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

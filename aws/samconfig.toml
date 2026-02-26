@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "arcod"
+resolve_s3 = true
+s3_prefix = "arcod"
+region = "eu-north-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "FirebaseProjectId=\"qobuz-dl-web\" PaxsenixApiKey=\"sk-paxsenix-MQfAqTIbXrSqkgCdqt0sxdfUwzL_4OzkiibJPyPdms4H3Tab\""
+image_repositories = []
+
+[default.global.parameters]
+region = "eu-north-1"

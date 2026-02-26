@@ -1,0 +1,873 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Qobuz-DL Backend - AWS Lambda + DynamoDB + S3 (v1.0.5)
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        JOBS_TABLE: !Ref JobsTable
+        DOWNLOAD_LOGS_TABLE: !Ref DownloadLogsTable
+        BLOCKED_IPS_TABLE: !Ref BlockedIPsTable
+        RATE_LIMITED_IPS_TABLE: !Ref RateLimitedIPsTable
+        S3_BUCKET: !Ref DownloadsBucket
+        CLOUDFRONT_DOMAIN: dl.arcod.xyz
+        FIREBASE_PROJECT_ID: !Ref FirebaseProjectId
+        QOBUZ_APP_ID: !Ref QobuzAppId
+        QOBUZ_SECRET: !Ref QobuzSecret
+        QOBUZ_AUTH_TOKENS: !Ref QobuzAuthTokens
+        LYRICS_SERVICE_URL: !Ref LyricsServiceUrl
+        COGNITO_USER_POOL_ID: eu-north-1_flCixmbsE
+        COGNITO_CLIENT_ID: 7867dfj0mhgr13c58i5fk7rluu
+        DOWNLOADS_TABLE_V2: qobuz-downloads-v2
+
+Parameters:
+  FirebaseProjectId:
+    Type: String
+    Description: Firebase Project ID for token verification
+  QobuzAppId:
+    Type: String
+    Description: Qobuz API App ID
+    NoEcho: true
+  QobuzSecret:
+    Type: String
+    Description: Qobuz API Secret
+    NoEcho: true
+  QobuzAuthTokens:
+    Type: String
+    Description: JSON array of Qobuz auth tokens
+    NoEcho: true
+  LyricsServiceUrl:
+    Type: String
+    Description: Lyrics service URL
+    Default: 'https://lyrics-service-1012349904662.europe-west1.run.app'
+  PaxsenixApiKey:
+    Type: String
+    Description: Paxsenix API key for Musixmatch fallback
+    Default: ''
+    NoEcho: true
+
+Resources:
+  # ==================== API Gateway ====================
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Forwarded-For,token-country'"
+        AllowOrigin: "'*'"
+
+  # ==================== Lambda Functions ====================
+  
+  # Create Job Function
+  CreateJobFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: createJob.handler
+      Timeout: 60
+      MemorySize: 512
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DownloadLogsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BlockedIPsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RateLimitedIPsTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /jobs
+            Method: POST
+
+  # Get Job Function
+  GetJobFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: getJob.handler
+      Timeout: 10
+      MemorySize: 128
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref JobsTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /jobs/{jobId}
+            Method: GET
+
+  # List Jobs Function
+  ListJobsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: listJobs.handler
+      Timeout: 30
+      MemorySize: 256
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref JobsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DownloadLogsTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /jobs
+            Method: GET
+
+  # Cancel Job Function
+  CancelJobFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: cancelJob.handler
+      Timeout: 10
+      MemorySize: 128
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /jobs/{jobId}/cancel
+            Method: POST
+
+  # Delete Job Function
+  DeleteJobFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: deleteJob.handler
+      Timeout: 30
+      MemorySize: 256
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DownloadLogsTable
+        - S3CrudPolicy:
+            BucketName: !Ref DownloadsBucket
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /jobs/{jobId}
+            Method: DELETE
+
+  # Get Album Info Function
+  GetAlbumInfoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: getAlbumInfo.handler
+      Timeout: 30
+      MemorySize: 256
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /albums/{albumId}
+            Method: GET
+
+  # Process Job Function (triggered by DynamoDB Stream)
+  ProcessJobFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: processJob.handler
+      Timeout: 540
+      MemorySize: 3008
+      EphemeralStorage:
+        Size: 10240
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - S3CrudPolicy:
+            BucketName: !Ref DownloadsBucket
+      Events:
+        DynamoDBStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt JobsTable.StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 1
+            FilterCriteria:
+              Filters:
+                - Pattern: '{"eventName": ["INSERT"], "dynamodb": {"NewImage": {"status": {"S": ["pending"]}}}}'
+
+  # Cleanup Old Jobs Function (scheduled)
+  CleanupJobsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: cleanupJobs.handler
+      Timeout: 120
+      MemorySize: 256
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - S3CrudPolicy:
+            BucketName: !Ref DownloadsBucket
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
+            Description: Cleanup old and stuck jobs
+
+  # Manual Cleanup Function
+  ManualCleanupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: cleanupJobs.manualHandler
+      Timeout: 120
+      MemorySize: 256
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - S3CrudPolicy:
+            BucketName: !Ref DownloadsBucket
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /cleanup
+            Method: POST
+
+  # ==================== Admin Functions ====================
+
+  # Manage Blocked IPs
+  AdminBlockedIPsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: admin.blockedIPsHandler
+      Timeout: 10
+      MemorySize: 256
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BlockedIPsTable
+      Events:
+        GetBlockedIPs:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/blocked-ips
+            Method: GET
+        AddBlockedIP:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/blocked-ips
+            Method: POST
+        DeleteBlockedIP:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/blocked-ips/{ip}
+            Method: DELETE
+
+  # Manage Rate Limited IPs
+  AdminRateLimitsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: admin.rateLimitsHandler
+      Timeout: 10
+      MemorySize: 256
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RateLimitedIPsTable
+      Events:
+        GetRateLimits:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/rate-limits
+            Method: GET
+        AddRateLimit:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/rate-limits
+            Method: POST
+        DeleteRateLimit:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/rate-limits/{ip}
+            Method: DELETE
+
+  # ==================== DynamoDB Tables ====================
+  
+  JobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: qobuz-jobs
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+        - AttributeName: updatedAt
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: status-createdAt-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: status-updatedAt-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: updatedAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: userId-createdAt-index
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: false
+
+  DownloadLogsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: qobuz-download-logs
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: ip
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: userEmail
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: userId-createdAt-index
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: userEmail-createdAt-index
+          KeySchema:
+            - AttributeName: userEmail
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ip-createdAt-index
+          KeySchema:
+            - AttributeName: ip
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: false
+
+  BlockedIPsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: qobuz-blocked-ips
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: ip
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ip
+          KeyType: HASH
+
+  RateLimitedIPsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: qobuz-rate-limited-ips
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: ip
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ip
+          KeyType: HASH
+
+  # Guest Downloads Table - Tracks guest downloads per IP with hourly limit
+  GuestDownloadsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: qobuz-guest-downloads
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # ==================== NEW V2 DOWNLOADS TABLE - EXPLICIT COLUMNS ====================
+  
+  DownloadsTableV2:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: qobuz-downloads-v2
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: userEmail
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+        - AttributeName: albumId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: userId-createdAt-index
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: userEmail-createdAt-index
+          KeySchema:
+            - AttributeName: userEmail
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: status-createdAt-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: albumId-createdAt-index
+          KeySchema:
+            - AttributeName: albumId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: false
+
+  # ==================== V2 Lambda Functions ====================
+
+  CreateDownloadV2Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: createDownloadV2.handler
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          DOWNLOADS_TABLE_V2: !Ref DownloadsTableV2
+          GUEST_LIMITS_TABLE: !Ref GuestDownloadsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DownloadsTableV2
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GuestDownloadsTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /v2/downloads
+            Method: POST
+
+  GetDownloadV2Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: getDownloadV2.handler
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          DOWNLOADS_TABLE_V2: !Ref DownloadsTableV2
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DownloadsTableV2
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /v2/downloads/{jobId}
+            Method: GET
+
+  ListDownloadsV2Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: listDownloadsV2.handler
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          DOWNLOADS_TABLE_V2: !Ref DownloadsTableV2
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DownloadsTableV2
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /v2/downloads
+            Method: GET
+
+  # Guest Rate Limit Function - Returns current guest download limit status
+  GetGuestRateLimitFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: getGuestRateLimit.handler
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          GUEST_LIMITS_TABLE: !Ref GuestDownloadsTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GuestDownloadsTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /v2/guest/rate-limit
+            Method: GET
+
+  DeleteDownloadV2Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: deleteDownloadV2.handler
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          DOWNLOADS_TABLE_V2: !Ref DownloadsTableV2
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DownloadsTableV2
+        - S3CrudPolicy:
+            BucketName: !Ref DownloadsBucket
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /v2/downloads/{jobId}
+            Method: DELETE
+
+
+  ProcessDownloadV2Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: processDownloadV2.handler
+      Timeout: 540
+      MemorySize: 3008
+      EphemeralStorage:
+        Size: 10240
+      Environment:
+        Variables:
+          DOWNLOADS_TABLE_V2: !Ref DownloadsTableV2
+          LYRICS_API_URL: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod'
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DownloadsTableV2
+        - DynamoDBReadPolicy:
+            TableName: !Ref DownloadLogsTable
+        - S3CrudPolicy:
+            BucketName: !Ref DownloadsBucket
+      Events:
+        DynamoDBStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt DownloadsTableV2.StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 1
+            FilterCriteria:
+              Filters:
+                - Pattern: '{"eventName": ["INSERT"], "dynamodb": {"NewImage": {"status": {"S": ["pending"]}}}}'
+
+  # Get Storage Info Function (user library usage)
+  GetStorageInfoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: getStorageInfo.handler
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          DOWNLOADS_TABLE_V2: !Ref DownloadsTableV2
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DownloadsTableV2
+        - DynamoDBReadPolicy:
+            TableName: !Ref DownloadLogsTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /v2/storage
+            Method: GET
+
+
+  # ==================== Lyrics Service ====================
+
+  LyricsServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: lyricsService.handler
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          PAXSENIX_API_KEY: !Ref PaxsenixApiKey
+      Events:
+        PostLyrics:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /lyrics
+            Method: POST
+        GetLyrics:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /lyrics
+            Method: GET
+        LyricsHealth:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /lyrics/health
+            Method: GET
+
+  # ==================== Auth Migration Functions ====================
+
+  CheckMigratedUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: checkMigratedUser.handler
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          USER_POOL_ID: eu-north-1_flCixmbsE
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminGetUser
+              Resource: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/eu-north-1_flCixmbsE'
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /auth/check-migrated
+            Method: POST
+
+  RemoveFirebaseIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: removeFirebaseId.handler
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          USER_POOL_ID: eu-north-1_flCixmbsE
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminUpdateUserAttributes
+              Resource: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/eu-north-1_flCixmbsE'
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /auth/remove-firebase-id
+            Method: POST
+
+
+  # ==================== S3 Bucket ====================
+  
+  DownloadsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'qobuz-dl-downloads-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      # NO LIFECYCLE CONFIGURATION - files are permanent!
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - HEAD
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3600
+
+  DownloadsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DownloadsBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontAccess
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${DownloadsBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DownloadsDistribution}'
+
+  # ==================== CloudFront ====================
+  
+  DownloadsOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'qobuz-dl-oac-${AWS::AccountId}'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  DownloadsDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: Qobuz-DL Downloads CDN
+        DefaultRootObject: ''
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt DownloadsBucket.RegionalDomainName
+            OriginAccessControlId: !Ref DownloadsOriginAccessControl
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # CachingOptimized
+          OriginRequestPolicyId: 88a5eaf4-2fd4-4709-b370-b4c650ea3fcf  # CORS-S3Origin
+          ResponseHeadersPolicyId: 5cc3b908-e619-4b99-88e5-2cf7f45965bd  # CORS-with-preflight-and-SecurityHeaders
+        PriceClass: PriceClass_100
+        HttpVersion: http2and3
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway URL
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod'
+  
+  CloudFrontDomain:
+    Description: CloudFront Distribution Domain
+    Value: !GetAtt DownloadsDistribution.DomainName
+  
+  S3Bucket:
+    Description: S3 Bucket Name
+    Value: !Ref DownloadsBucket
+  
+  JobsTableName:
+    Description: DynamoDB Jobs Table Name
+    Value: !Ref JobsTable

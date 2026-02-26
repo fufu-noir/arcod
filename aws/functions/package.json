@@ -1,0 +1,32 @@
+{
+    "name": "qobuz-dl-lambda",
+    "version": "1.0.0",
+    "description": "Qobuz-DL AWS Lambda Functions",
+    "scripts": {
+        "build": "esbuild src/*.ts --bundle --platform=node --target=node20 --outdir=. --format=cjs --external:@aws-sdk/*",
+        "test": "node --test"
+    },
+    "dependencies": {
+        "@aws-sdk/client-cognito-identity-provider": "^3.975.0",
+        "@aws-sdk/client-dynamodb": "^3.500.0",
+        "@aws-sdk/client-s3": "^3.500.0",
+        "@aws-sdk/lib-dynamodb": "^3.500.0",
+        "@aws-sdk/s3-request-presigner": "^3.500.0",
+        "@aws-sdk/util-dynamodb": "^3.500.0",
+        "@ffmpeg-installer/ffmpeg": "^1.1.0",
+        "archiver": "^6.0.1",
+        "aws-jwt-verify": "^5.1.1",
+        "axios": "^1.6.0",
+        "fluent-ffmpeg": "^2.1.2",
+        "node-taglib-sharp": "^5.2.3",
+        "uuid": "^9.0.0"
+    },
+    "devDependencies": {
+        "@types/archiver": "^6.0.2",
+        "@types/fluent-ffmpeg": "^2.1.24",
+        "@types/node": "^20.10.0",
+        "@types/uuid": "^9.0.7",
+        "esbuild": "^0.20.0",
+        "typescript": "^5.3.0"
+    }
+}

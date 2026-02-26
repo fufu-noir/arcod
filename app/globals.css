@@ -1,0 +1,851 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow-x: hidden;
+}
+
+/* Critical Splash Screen Styles */
+.arcod-splash-root {
+    /* Always visible so we can see the logo on top of the curtain */
+    visibility: visible;
+}
+
+.arcod-curtain-initial {
+    position: fixed;
+    inset: 0;
+    background: black;
+    z-index: 100000;
+    pointer-events: none;
+    clip-path: circle(150% at 50% 50%);
+}
+
+@layer base {
+    :root {
+        /* Light Theme - Clean & Modern */
+        --background: 220 20% 97%;
+        --foreground: 224 71% 4%;
+        --card: 0 0% 100%;
+        --card-foreground: 224 71% 4%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 224 71% 4%;
+        --primary: 220 90% 56%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 220 14% 92%;
+        --secondary-foreground: 224 71% 4%;
+        --muted: 220 14% 92%;
+        --muted-foreground: 220 9% 40%;
+        --muted-background: 220 14% 88%;
+        --accent: 220 14% 90%;
+        --accent-foreground: 224 71% 4%;
+        --accent-background: 220 14% 85%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 220 13% 88%;
+        --input: 220 13% 88%;
+        --ring: 220 90% 56%;
+        --chart-1: 220 90% 56%;
+        --chart-2: 160 60% 45%;
+        --chart-3: 30 80% 55%;
+        --chart-4: 280 65% 60%;
+        --chart-5: 340 75% 55%;
+        --radius: 0.75rem;
+    }
+
+    .dark {
+        /* Dark Theme - Deep & Elegant */
+        --background: 224 71% 4%;
+        --foreground: 210 20% 98%;
+        --card: 224 71% 7%;
+        --card-foreground: 210 20% 98%;
+        --popover: 224 71% 7%;
+        --popover-foreground: 210 20% 98%;
+        --primary: 217 91% 60%;
+        --primary-foreground: 224 71% 4%;
+        --secondary: 215 28% 17%;
+        --secondary-foreground: 210 20% 98%;
+        --muted: 215 28% 17%;
+        --muted-foreground: 217 15% 65%;
+        --muted-background: 215 28% 22%;
+        --accent: 215 28% 20%;
+        --accent-foreground: 210 20% 98%;
+        --accent-background: 215 28% 25%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 210 20% 98%;
+        --border: 215 28% 17%;
+        --input: 215 28% 20%;
+        --ring: 217 91% 60%;
+        --chart-1: 217 91% 60%;
+        --chart-2: 160 70% 45%;
+        --chart-3: 30 80% 55%;
+        --chart-4: 280 65% 60%;
+        --chart-5: 340 75% 55%;
+    }
+
+    .purple {
+        /* Purple Theme - Rich & Luxurious */
+        --background: 270 50% 6%;
+        --foreground: 270 20% 98%;
+        --card: 270 45% 10%;
+        --card-foreground: 270 20% 98%;
+        --popover: 270 45% 10%;
+        --popover-foreground: 270 20% 98%;
+        --primary: 270 95% 70%;
+        --primary-foreground: 270 50% 6%;
+        --secondary: 270 35% 18%;
+        --secondary-foreground: 270 20% 98%;
+        --muted: 270 35% 18%;
+        --muted-foreground: 270 25% 72%;
+        --muted-background: 270 35% 25%;
+        --accent: 280 60% 65%;
+        --accent-foreground: 270 20% 98%;
+        --accent-background: 270 35% 25%;
+        --destructive: 350 85% 60%;
+        --destructive-foreground: 270 20% 98%;
+        --border: 270 35% 22%;
+        --input: 270 35% 22%;
+        --ring: 270 95% 70%;
+        --chart-1: 270 95% 70%;
+        --chart-2: 200 80% 60%;
+        --chart-3: 330 80% 65%;
+        --chart-4: 45 90% 65%;
+        --chart-5: 160 70% 50%;
+    }
+
+    .pink {
+        /* Pink Theme - Vibrant & Playful */
+        --background: 330 45% 6%;
+        --foreground: 330 20% 98%;
+        --card: 330 40% 10%;
+        --card-foreground: 330 20% 98%;
+        --popover: 330 40% 10%;
+        --popover-foreground: 330 20% 98%;
+        --primary: 330 90% 65%;
+        --primary-foreground: 330 45% 6%;
+        --secondary: 330 30% 18%;
+        --secondary-foreground: 330 20% 98%;
+        --muted: 330 30% 18%;
+        --muted-foreground: 330 25% 72%;
+        --muted-background: 330 30% 25%;
+        --accent: 340 85% 60%;
+        --accent-foreground: 330 20% 98%;
+        --accent-background: 330 30% 25%;
+        --destructive: 0 85% 60%;
+        --destructive-foreground: 330 20% 98%;
+        --border: 330 30% 22%;
+        --input: 330 30% 22%;
+        --ring: 330 90% 65%;
+        --chart-1: 330 90% 65%;
+        --chart-2: 270 80% 70%;
+        --chart-3: 200 80% 60%;
+        --chart-4: 45 90% 65%;
+        --chart-5: 160 70% 50%;
+    }
+
+    .blue {
+        /* Blue Theme - Ocean Deep */
+        --background: 215 55% 6%;
+        --foreground: 210 25% 98%;
+        --card: 215 50% 10%;
+        --card-foreground: 210 25% 98%;
+        --popover: 215 50% 10%;
+        --popover-foreground: 210 25% 98%;
+        --primary: 210 100% 60%;
+        --primary-foreground: 215 55% 6%;
+        --secondary: 215 40% 18%;
+        --secondary-foreground: 210 25% 98%;
+        --muted: 215 40% 18%;
+        --muted-foreground: 210 25% 72%;
+        --muted-background: 215 40% 25%;
+        --accent: 195 90% 55%;
+        --accent-foreground: 210 25% 98%;
+        --accent-background: 215 40% 25%;
+        --destructive: 0 85% 60%;
+        --destructive-foreground: 210 25% 98%;
+        --border: 215 40% 22%;
+        --input: 215 40% 22%;
+        --ring: 210 100% 60%;
+        --chart-1: 210 100% 60%;
+        --chart-2: 195 90% 55%;
+        --chart-3: 170 80% 50%;
+        --chart-4: 45 90% 65%;
+        --chart-5: 280 70% 60%;
+    }
+
+    .green {
+        /* Green Theme - Forest & Nature */
+        --background: 150 45% 5%;
+        --foreground: 140 25% 98%;
+        --card: 150 40% 9%;
+        --card-foreground: 140 25% 98%;
+        --popover: 150 40% 9%;
+        --popover-foreground: 140 25% 98%;
+        --primary: 142 80% 55%;
+        --primary-foreground: 150 45% 5%;
+        --secondary: 150 35% 16%;
+        --secondary-foreground: 140 25% 98%;
+        --muted: 150 35% 16%;
+        --muted-foreground: 145 25% 70%;
+        --muted-background: 150 35% 22%;
+        --accent: 160 75% 50%;
+        --accent-foreground: 140 25% 98%;
+        --accent-background: 150 35% 22%;
+        --destructive: 0 85% 60%;
+        --destructive-foreground: 140 25% 98%;
+        --border: 150 35% 20%;
+        --input: 150 35% 20%;
+        --ring: 142 80% 55%;
+        --chart-1: 142 80% 55%;
+        --chart-2: 170 70% 50%;
+        --chart-3: 100 70% 55%;
+        --chart-4: 45 90% 65%;
+        --chart-5: 200 80% 60%;
+    }
+
+    .red {
+        /* Red Theme - Bold & Passionate */
+        --background: 0 45% 5%;
+        --foreground: 0 20% 98%;
+        --card: 0 40% 9%;
+        --card-foreground: 0 20% 98%;
+        --popover: 0 40% 9%;
+        --popover-foreground: 0 20% 98%;
+        --primary: 0 85% 60%;
+        --primary-foreground: 0 20% 98%;
+        --secondary: 0 35% 16%;
+        --secondary-foreground: 0 20% 98%;
+        --muted: 0 35% 16%;
+        --muted-foreground: 0 20% 70%;
+        --muted-background: 0 35% 22%;
+        --accent: 350 80% 55%;
+        --accent-foreground: 0 20% 98%;
+        --accent-background: 0 35% 22%;
+        --destructive: 30 85% 55%;
+        --destructive-foreground: 0 20% 98%;
+        --border: 0 35% 20%;
+        --input: 0 35% 20%;
+        --ring: 0 85% 60%;
+        --chart-1: 0 85% 60%;
+        --chart-2: 350 80% 55%;
+        --chart-3: 30 90% 55%;
+        --chart-4: 45 90% 65%;
+        --chart-5: 270 70% 60%;
+    }
+
+    .orange {
+        /* Orange Theme - Warm & Energetic */
+        --background: 25 50% 5%;
+        --foreground: 30 25% 98%;
+        --card: 25 45% 9%;
+        --card-foreground: 30 25% 98%;
+        --popover: 25 45% 9%;
+        --popover-foreground: 30 25% 98%;
+        --primary: 25 95% 55%;
+        --primary-foreground: 25 50% 5%;
+        --secondary: 25 35% 16%;
+        --secondary-foreground: 30 25% 98%;
+        --muted: 25 35% 16%;
+        --muted-foreground: 30 25% 70%;
+        --muted-background: 25 35% 22%;
+        --accent: 35 90% 55%;
+        --accent-foreground: 30 25% 98%;
+        --accent-background: 25 35% 22%;
+        --destructive: 0 85% 60%;
+        --destructive-foreground: 30 25% 98%;
+        --border: 25 35% 20%;
+        --input: 25 35% 20%;
+        --ring: 25 95% 55%;
+        --chart-1: 25 95% 55%;
+        --chart-2: 35 90% 55%;
+        --chart-3: 45 90% 60%;
+        --chart-4: 0 75% 55%;
+        --chart-5: 200 70% 55%;
+    }
+
+    .yellow {
+        /* Yellow Theme - Sunny & Optimistic */
+        --background: 45 50% 4%;
+        --foreground: 50 30% 98%;
+        --card: 45 45% 8%;
+        --card-foreground: 50 30% 98%;
+        --popover: 45 45% 8%;
+        --popover-foreground: 50 30% 98%;
+        --primary: 48 96% 53%;
+        --primary-foreground: 45 50% 4%;
+        --secondary: 45 35% 15%;
+        --secondary-foreground: 50 30% 98%;
+        --muted: 45 35% 15%;
+        --muted-foreground: 50 30% 72%;
+        --muted-background: 45 35% 20%;
+        --accent: 55 90% 50%;
+        --accent-foreground: 50 30% 98%;
+        --accent-background: 45 35% 20%;
+        --destructive: 0 85% 60%;
+        --destructive-foreground: 50 30% 98%;
+        --border: 45 35% 18%;
+        --input: 45 35% 18%;
+        --ring: 48 96% 53%;
+        --chart-1: 48 96% 53%;
+        --chart-2: 35 90% 55%;
+        --chart-3: 25 90% 55%;
+        --chart-4: 120 65% 50%;
+        --chart-5: 200 70% 55%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+/* Performance: Card containers with CSS containment */
+.card-container {
+    contain: layout paint;
+    content-visibility: auto;
+}
+
+/* Performance: GPU acceleration for animated elements */
+.gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* Performance: Optimized card styles for smoother scroll */
+.card-optimized {
+    /* Create compositing layer - forces cover + text to scroll together */
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    /* Isolation prevents z-index bleed and forces own stacking context */
+    isolation: isolate;
+    /* Only transition on hover, not during scroll */
+    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Hover state handled purely in CSS - no JS calculations */
+.card-optimized.card-hovered {
+    transform: translateZ(0) scale(1.03);
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.4),
+        0 0 20px -5px hsl(var(--primary) / 0.2);
+    will-change: transform, box-shadow;
+}
+
+/* Disable all hover effects on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    .card-optimized {
+        transition: none !important;
+        transform: translateZ(0) !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+        will-change: auto !important;
+    }
+
+    .card-optimized.card-hovered {
+        transform: translateZ(0) !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* Reduce animation complexity on mobile */
+    .star {
+        animation: twinkle 6s infinite alternate !important;
+    }
+
+    .arc-1,
+    .arc-2,
+    .arc-3 {
+        animation-duration: 15s !important;
+    }
+}
+
+
+
+/* Smooth scrolling with momentum */
+.scroll-optimized {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+
+    .card-optimized,
+    .star,
+    .arc-1,
+    .arc-2,
+    .arc-3 {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* Performance: Lazy rendering for off-screen content */
+.lazy-render {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 400px;
+}
+
+/* Futuristic Background Styles - Default (Dark) */
+.futuristic-background {
+    background: linear-gradient(to bottom, #0a0a1a, #1a1a3e, #2a2a5c, #4a4a8c) !important;
+}
+
+.grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(to right, rgba(96, 165, 250, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(96, 165, 250, 0.08) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+.concentric-arcs-container {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100vw;
+    height: 50vw;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+    color: rgba(96, 165, 250, 0.4);
+    transition: color 0.5s ease;
+}
+
+.concentric-arcs-container svg {
+    width: 100%;
+    height: 100%;
+}
+
+.arc-1,
+.arc-2,
+.arc-3 {
+    transform-origin: 500px 500px;
+    /* Precise center point of the circles in the 1000x500 viewBox */
+}
+
+.arc-1 {
+    animation: futuristicPulse 10s infinite alternate ease-in-out;
+    opacity: 0.35;
+}
+
+.arc-2 {
+    animation: futuristicPulse 8s infinite alternate-reverse ease-in-out;
+    animation-delay: -2s;
+    opacity: 0.25;
+}
+
+.arc-3 {
+    animation: futuristicPulse 12s infinite alternate ease-in-out;
+    animation-delay: -4s;
+    opacity: 0.15;
+}
+
+/* Light Theme Futuristic */
+.light .futuristic-background {
+    background: linear-gradient(to bottom, #e0f2fe, #bae6fd, #7dd3fc, #38bdf8) !important;
+}
+
+.light .grid-overlay {
+    background-image:
+        linear-gradient(to right, rgba(30, 58, 138, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(30, 58, 138, 0.1) 1px, transparent 1px);
+}
+
+.light .concentric-arcs-container {
+    color: rgba(30, 58, 138, 0.3);
+}
+
+.light .star {
+    background-color: #1e3a8a;
+}
+
+/* Purple Theme Futuristic */
+.purple .futuristic-background {
+    background: linear-gradient(to bottom, #1a0a2e, #2d1b4e, #4c2885, #7c3aed) !important;
+}
+
+.purple .grid-overlay {
+    background-image:
+        linear-gradient(to right, rgba(168, 85, 247, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(168, 85, 247, 0.1) 1px, transparent 1px);
+}
+
+.purple .concentric-arcs-container {
+    color: rgba(168, 85, 247, 0.4);
+}
+
+.purple .star {
+    background-color: #e9d5ff;
+}
+
+/* Pink Theme Futuristic */
+.pink .futuristic-background {
+    background: linear-gradient(to bottom, #1f0a1a, #3d1a33, #6b214f, #db2777) !important;
+}
+
+.pink .grid-overlay {
+    background-image:
+        linear-gradient(to right, rgba(244, 114, 182, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(244, 114, 182, 0.1) 1px, transparent 1px);
+}
+
+.pink .concentric-arcs-container {
+    color: rgba(244, 114, 182, 0.4);
+}
+
+.pink .star {
+    background-color: #fce7f3;
+}
+
+/* Blue Theme Futuristic */
+.blue .futuristic-background {
+    background: linear-gradient(to bottom, #0a1628, #0c2545, #0e3a6e, #0284c7) !important;
+}
+
+.blue .grid-overlay {
+    background-image:
+        linear-gradient(to right, rgba(56, 189, 248, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(56, 189, 248, 0.1) 1px, transparent 1px);
+}
+
+.blue .concentric-arcs-container {
+    color: rgba(56, 189, 248, 0.4);
+}
+
+.blue .star {
+    background-color: #e0f2fe;
+}
+
+/* Green Theme Futuristic */
+.green .futuristic-background {
+    background: linear-gradient(to bottom, #052e16, #064e3b, #047857, #10b981) !important;
+}
+
+.green .grid-overlay {
+    background-image:
+        linear-gradient(to right, rgba(74, 222, 128, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(74, 222, 128, 0.1) 1px, transparent 1px);
+}
+
+.green .concentric-arcs-container {
+    color: rgba(74, 222, 128, 0.4);
+}
+
+.green .star {
+    background-color: #dcfce7;
+}
+
+/* Red Theme Futuristic */
+.red .futuristic-background {
+    background: linear-gradient(to bottom, #1c0a0a, #450a0a, #7f1d1d, #dc2626) !important;
+}
+
+.red .grid-overlay {
+    background-image:
+        linear-gradient(to right, rgba(248, 113, 113, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(248, 113, 113, 0.1) 1px, transparent 1px);
+}
+
+.red .concentric-arcs-container {
+    color: rgba(248, 113, 113, 0.4);
+}
+
+.red .star {
+    background-color: #fee2e2;
+}
+
+/* Orange Theme Futuristic */
+.orange .futuristic-background {
+    background: linear-gradient(to bottom, #1c0f05, #431407, #7c2d12, #ea580c) !important;
+}
+
+.orange .grid-overlay {
+    background-image:
+        linear-gradient(to right, rgba(251, 146, 60, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(251, 146, 60, 0.1) 1px, transparent 1px);
+}
+
+.orange .concentric-arcs-container {
+    color: rgba(251, 146, 60, 0.4);
+}
+
+.orange .star {
+    background-color: #ffedd5;
+}
+
+/* Yellow Theme Futuristic */
+.yellow .futuristic-background {
+    background: linear-gradient(to bottom, #1c1505, #422006, #713f12, #ca8a04) !important;
+}
+
+.yellow .grid-overlay {
+    background-image:
+        linear-gradient(to right, rgba(250, 204, 21, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(250, 204, 21, 0.1) 1px, transparent 1px);
+}
+
+.yellow .concentric-arcs-container {
+    color: rgba(250, 204, 21, 0.4);
+}
+
+.yellow .star {
+    background-color: #fef9c3;
+}
+
+.stars-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.star {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    background-color: white;
+    clip-path: polygon(50% 0%, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0% 50%, 39% 39%);
+    animation: twinkle 4s infinite alternate, starRotateInfinite 30s infinite linear;
+    transition: background-color 0.3s ease, filter 0.3s ease;
+}
+
+.star.success-blink {
+    animation: twinkle 4s infinite alternate, starRotateInfinite 30s infinite linear, starSuccessGreen 0.4s infinite !important;
+}
+
+.star:nth-child(1) {
+    top: 10%;
+    left: 15%;
+    animation-delay: 0.5s;
+}
+
+.star:nth-child(2) {
+    top: 30%;
+    left: 80%;
+    animation-delay: 1s;
+}
+
+.star:nth-child(3) {
+    top: 5%;
+    left: 40%;
+    animation-delay: 1.5s;
+}
+
+.star:nth-child(4) {
+    top: 50%;
+    left: 10%;
+    animation-delay: 2s;
+}
+
+.star:nth-child(5) {
+    top: 25%;
+    left: 60%;
+    animation-delay: 2.5s;
+}
+
+.star:nth-child(6) {
+    top: 80%;
+    left: 85%;
+    animation-delay: 3s;
+}
+
+.star:nth-child(7) {
+    top: 60%;
+    left: 30%;
+    animation-delay: 3.5s;
+}
+
+.star:nth-child(8) {
+    top: 45%;
+    left: 90%;
+    animation-delay: 4s;
+}
+
+.star:nth-child(9) {
+    top: 15%;
+    left: 5%;
+    animation-delay: 0.8s;
+}
+
+.star:nth-child(10) {
+    top: 70%;
+    left: 70%;
+    animation-delay: 1.2s;
+}
+
+.star:nth-child(11) {
+    top: 90%;
+    left: 20%;
+    animation-delay: 2.2s;
+}
+
+.star:nth-child(12) {
+    top: 5%;
+    left: 95%;
+    animation-delay: 3.2s;
+}
+
+@keyframes starRotateInfinite {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes starSuccessGreen {
+
+    0%,
+    100% {
+        background-color: white;
+        filter: drop-shadow(0 0 2px white);
+    }
+
+    50% {
+        background-color: #22c55e;
+        filter: drop-shadow(0 0 15px #4ade80);
+    }
+}
+
+@keyframes futuristicPulse {
+    0% {
+        opacity: 0.05;
+        transform: scale(0.85);
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+
+    100% {
+        opacity: 0.05;
+        transform: scale(1.15);
+    }
+}
+
+@keyframes twinkle {
+    from {
+        opacity: 0.4;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes starRotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@layer utilities {
+    .font-meub {
+        font-family: var(--font-meub), sans-serif;
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    .animate-slide-up {
+        animation: slideUp 0.8s ease-out;
+    }
+
+    .animate-scale-in {
+        animation: scaleIn 0.4s ease-out;
+    }
+
+    .animate-float {
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari and Opera */
+}
