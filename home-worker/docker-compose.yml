@@ -1,0 +1,7 @@
+services:
+  worker:
+    build: .
+    env_file: .env
+    restart: unless-stopped
+    volumes:
+      - ./processing:/tmp/arcod-processing

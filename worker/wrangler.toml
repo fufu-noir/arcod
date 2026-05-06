@@ -1,0 +1,6 @@
+name = "arcod-cdn-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+PROXY_SECRET = "arcod-proxy-x7k9m2p4"

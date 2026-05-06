@@ -1,0 +1,17 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3000 2553" width="3000" height="2553">
+	<style>
+		.s0 { fill: #ffffff } 
+		.s1 { fill: none;stroke: #000000;stroke-linecap: round;stroke-linejoin: round;stroke-width: 2 } 
+	</style>
+	<g id="Calque 1">
+	</g>
+	<g id="Calque 2">
+		<g id="&lt;Group&gt;">
+			<g id="&lt;Group&gt;">
+				<path id="&lt;Path&gt;" class="s0" d="m17 2486.33l1229.15-2465.33 525.92 1.98 1210.39 2463.35h-518.75c-45.22 0-124.14-56.55-149.73-95.26l-226.06-443.39h-902.71l277.76-579.46h334.94l-285.65-590.95-16.84-0.97-782.65 1584.91c-25.1 52.79-109.42 125.12-168.85 125.12z"/>
+				<path id="&lt;Path&gt;" class="s0" d="m2680.3 1506.95l-441.24-889.49 706.73 301.8c34.39 37.9 48.35 89.66 21.76 136.19-98.04 148.79-182.18 308.06-287.25 451.5z"/>
+				<path id="&lt;Path&gt;" class="s1" d="m2251.31 629.62q20.42 18.37 40.84 36.73"/>
+			</g>
+		</g>
+	</g>
+</svg>

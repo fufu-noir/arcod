@@ -1,0 +1,26 @@
+[
+    {
+        "title": "Native Country Support",
+        "date": "09-27-2025",
+        "changes": [
+            "Countries can now natively be selected from the country picker (when enabled)! Multiple instances for different countries are no longer needed."
+        ]
+    },
+    {
+        "title": "Custom Naming Variables & Reset Settings",
+        "date": "04-07-2025",
+        "changes": [
+            "Added custom naming variables to the settings page. You can now customise the names of downloaded tracks and zip files using special formatting options.",
+            "Added reset settings button to the bottom of the settings page."
+        ]
+    },
+    {
+        "title": "Change Log & PWA Support",
+        "date": "03-07-2025",
+        "changes": [
+            "Changelog added and now is used to handle updates and fixes along with Discord notifications",
+            "Added PWA support for easy access of the site on a mobile device for example with the abilty to add to the homescreen",
+            "Changed the border radius style to slightly more rounded, :)"
+        ]
+    }
+]
